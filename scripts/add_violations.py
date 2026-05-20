@@ -87,7 +87,10 @@ def fetch_violations(latest_dates):
             "$offset": offset,
             "$where":  f"violation_code IN ('{codes_str}')",
             "$select": "camis,inspection_date,violation_code",
-            "$order":  "camis,inspection_date DESC",
+            # Order keys must uniquely identify rows or Socrata pagination
+            # may skip/duplicate across pages — include violation_code as the
+            # final tiebreaker since multiple codes can share (camis,date).
+            "$order":  "camis,inspection_date DESC,violation_code",
         })
         print(f"  fetching offset {offset}…", flush=True)
         with urlopen(f"{API_BASE}?{params}", timeout=60, context=_SSL_CTX) as r:

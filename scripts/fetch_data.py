@@ -38,7 +38,12 @@ def fetch_page(offset):
         "$offset": offset,
         "$where": "latitude IS NOT NULL AND grade IS NOT NULL",
         "$select": FIELDS,
-        "$order": "inspection_date DESC",
+        # IMPORTANT: include camis as a unique tiebreaker. Socrata pagination
+        # is only stable when the sort key is unique — many inspections share
+        # an inspection_date, so without this tiebreaker rows shift between
+        # pages on successive fetches, causing phantom "added/removed" entries
+        # in the weekly diff.
+        "$order": "inspection_date DESC, camis",
     })
     with urlopen(f"{API_BASE}?{params}", timeout=60) as r:
         return json.loads(r.read())
@@ -94,7 +99,10 @@ def fetch_violations(latest_dates):
             "$offset": offset,
             "$where": f"violation_code IN ('{codes_str}')",
             "$select": "camis,inspection_date,violation_code",
-            "$order": "camis,inspection_date DESC",
+            # Order keys must uniquely identify rows or Socrata pagination
+            # may skip/duplicate across pages — include violation_code as the
+            # final tiebreaker since multiple codes can share (camis,date).
+            "$order": "camis,inspection_date DESC,violation_code",
         })
         with urlopen(f"{API_BASE}?{params}", timeout=60) as r:
             page = json.loads(r.read())
