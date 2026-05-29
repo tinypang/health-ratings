@@ -574,6 +574,10 @@
 
     .diff-name { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+    /* Clickable restaurant names that fly to the map pin. */
+    a.diff-name-link { color: #93c5fd; text-decoration: none; cursor: pointer; }
+    a.diff-name-link:hover { text-decoration: underline; }
+
     .diff-meta { font-size: 0.7rem; color: #64748b; flex-shrink: 0; }
 
     .boro-table {
@@ -1154,6 +1158,19 @@ function initChangesModal(diff) {
     return `<span class="diff-grade" style="background:${gradeColor(g)}">${g}</span>`;
   }
 
+  // Map camis -> marker entry so we can link a changed/new restaurant's name
+  // to its pin. Removed restaurants have no marker, so they stay plain text.
+  const markerByCamis = new Map(allMarkers.map((e) => [e.row.camis, e]));
+
+  // Render a restaurant name: a link to its pin when we have one, else text.
+  function nameCell(r) {
+    const name = r.dba || "Unknown";
+    if (markerByCamis.has(r.camis)) {
+      return `<a class="diff-name diff-name-link" href="#" data-camis="${r.camis}">${name}</a>`;
+    }
+    return `<span class="diff-name">${name}</span>`;
+  }
+
   function renderSection(title, items, renderItem) {
     if (!items || !items.length) return "";
     return `<div class="diff-section">
@@ -1166,19 +1183,19 @@ function initChangesModal(diff) {
     renderSection("Grade improvements", diff.improved, (r) => `
       <div class="diff-item">
         ${gradeChip(r.from)}<span class="diff-arrow">→</span>${gradeChip(r.to)}
-        <span class="diff-name">${r.dba || "Unknown"}</span>
+        ${nameCell(r)}
         <span class="diff-meta">${r.boro || ""}</span>
       </div>`) +
     renderSection("Grade declines", diff.declined, (r) => `
       <div class="diff-item">
         ${gradeChip(r.from)}<span class="diff-arrow">→</span>${gradeChip(r.to)}
-        <span class="diff-name">${r.dba || "Unknown"}</span>
+        ${nameCell(r)}
         <span class="diff-meta">${r.boro || ""}</span>
       </div>`) +
     renderSection("New restaurants", diff.added, (r) => `
       <div class="diff-item">
         ${gradeChip(r.grade || "N")}
-        <span class="diff-name">${r.dba || "Unknown"}</span>
+        ${nameCell(r)}
         <span class="diff-meta">${r.boro || ""}</span>
       </div>`) +
     renderSection("Closed / removed", diff.removed, (r) => `
@@ -1190,6 +1207,34 @@ function initChangesModal(diff) {
 
   function open()  { modal.hidden = false; document.body.style.overflow = "hidden"; }
   function close() { modal.hidden = true;  document.body.style.overflow = ""; }
+
+  // Close the flyout and fly the map to a restaurant's pin, opening its popup.
+  function focusRestaurant(camis) {
+    const entry = markerByCamis.get(camis);
+    if (!entry) return;
+    const { marker, grade } = entry;
+
+    // Make sure the pin will actually render: un-hide its grade, and if a
+    // violation filter would still exclude it, clear the violation filters.
+    if (!markerVisible(entry)) {
+      setGradeVisible(grade, true);
+      if (!markerVisible(entry)) {
+        for (const v of [...activeViolations]) setViolationActive(v, false);
+      }
+      applyFilters();
+    }
+
+    close();
+    clusterGroups[grade].zoomToShowLayer(marker, () => marker.openPopup());
+  }
+
+  // Event delegation: any linked restaurant name inside the flyout body.
+  body.addEventListener("click", (e) => {
+    const link = e.target.closest(".diff-name-link");
+    if (!link) return;
+    e.preventDefault();
+    focusRestaurant(link.dataset.camis);
+  });
 
   btn.addEventListener("click", open);
   closeBtn.addEventListener("click", close);
