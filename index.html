@@ -1018,6 +1018,10 @@ function buildPopup(row) {
       const lat = parseFloat(row.latitude);
       const lng = parseFloat(row.longitude);
       if (isNaN(lat) || isNaN(lng)) continue;
+      // (0,0) is the "Null Island" placeholder NYC Open Data emits for
+      // un-geocoded venues (stadium stands, airport lounges, tour boats).
+      // Skip them so they don't plot off the west coast of Africa.
+      if (lat === 0 && lng === 0) continue;
       const grade = row.grade in GRADE_COLOR ? row.grade : "N";
 
       const marker = L.circleMarker([lat, lng], {
