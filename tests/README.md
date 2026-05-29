@@ -14,6 +14,34 @@ Tests run automatically on every push and pull request via the **Tests** GitHub 
 
 ## Test files
 
+### `header.test.js` — Header presence regression guard
+
+Parses `index.html` with jsdom and asserts the map header (and its essential controls) can never silently disappear — particularly on mobile, where a stray `display: none` inside a media query has been a real regression risk.
+
+#### Structure assertions
+
+| Test | What it checks |
+|------|----------------|
+| `<header>` exists | The header element is present in the document |
+| Contains `#grades-btn` | Grades dropdown trigger lives inside the header |
+| Contains `#violations-btn` | Violations dropdown trigger lives inside the header |
+| Contains `#changes-btn` | Stats / Grade Changes button lives inside the header |
+| Contains `#search-input` | Restaurant search input lives inside the header |
+| `#search-wrap` wraps `#search-input` | Search markup retains the structure the mobile flex rules rely on |
+
+#### CSS audit
+
+A brace-balanced parser walks every CSS rule in every `<style>` block (including rules nested inside `@media` queries) and asserts no rule targeting `header`, `#search-wrap`, or any required button ID sets `display: none`, `visibility: hidden`, or `opacity: 0` — at any viewport width.
+
+| Test | What it checks |
+|------|----------------|
+| Parser sanity | A non-trivial number of rules were parsed (catches a broken parser that would make the audit pass vacuously) |
+| `header` is never hidden | No rule, in any media query, hides the header element |
+| `#search-wrap` is never hidden | Same, for the search wrapper |
+| `#grades-btn` / `#violations-btn` / `#changes-btn` / `#search-input` are never hidden | Same, for each essential control |
+
+---
+
 ### `geo.test.js` — Geolocation polygon utilities
 
 Tests the ray-casting functions in `scripts/geo.js` that determine whether a coordinate falls inside an NYC borough polygon.
