@@ -209,11 +209,16 @@ def compute_diff(current, prev_map, today, prev_date):
             d.update(extra)
         return d
 
-    added   = [slim(curr_map[c]) for c in sorted(curr_keys - prev_keys, key=lambda c: curr_map[c].get("dba") or "")]
-    removed = [slim(prev_map[c]) for c in sorted(prev_keys - curr_keys, key=lambda c: prev_map[c].get("dba") or "")]
+    # Sort by borough first so each section groups restaurants by borough,
+    # then alphabetically by name within each borough.
+    def sort_key(r):
+        return ((r.get("boro") or "Unknown"), (r.get("dba") or ""))
+
+    added   = [slim(curr_map[c]) for c in sorted(curr_keys - prev_keys, key=lambda c: sort_key(curr_map[c]))]
+    removed = [slim(prev_map[c]) for c in sorted(prev_keys - curr_keys, key=lambda c: sort_key(prev_map[c]))]
 
     improved, declined = [], []
-    for camis in sorted(curr_keys & prev_keys, key=lambda c: curr_map[c].get("dba") or ""):
+    for camis in sorted(curr_keys & prev_keys, key=lambda c: sort_key(curr_map[c])):
         cg = curr_map[camis].get("grade", "N")
         pg = prev_map[camis].get("grade", "N")
         if cg == pg:
