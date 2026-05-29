@@ -1033,9 +1033,27 @@ function initChangesModal(diff) {
   const summaryEl= document.getElementById("modal-summary");
   const body     = document.getElementById("modal-body");
 
+  // Sort each change list by borough first, then by restaurant name —
+  // groups entries by borough in the rendered sections. (Backend sorts the
+  // same way, but we re-sort client-side so already-generated diff files
+  // benefit immediately.)
+  const sortByBoro = (list) => (list || []).slice().sort((a, b) => {
+    const ba = a.boro || "Unknown", bb = b.boro || "Unknown";
+    if (ba !== bb) return ba.localeCompare(bb);
+    return (a.dba || "").localeCompare(b.dba || "");
+  });
+  diff = { ...diff,
+    added:    sortByBoro(diff.added),
+    removed:  sortByBoro(diff.removed),
+    improved: sortByBoro(diff.improved),
+    declined: sortByBoro(diff.declined),
+  };
+
   const s = diff.summary;
   const totalChanges = s ? (s.improved + s.declined + s.added + s.removed) : 0;
-  btn.textContent = totalChanges > 0 ? `Changes (${totalChanges})` : "Borough Stats";
+  btn.textContent = totalChanges > 0
+    ? `Stats and Grade Changes (${totalChanges})`
+    : "Stats and Grade Changes";
   btn.hidden = false;
 
   subtitle.textContent = diff.previous ? `${diff.previous} → ${diff.date}` : diff.date;
