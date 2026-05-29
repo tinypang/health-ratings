@@ -1051,7 +1051,9 @@ function initChangesModal(diff) {
 
   const s = diff.summary;
   const totalChanges = s ? (s.improved + s.declined + s.added + s.removed) : 0;
-  btn.textContent = totalChanges > 0 ? `Changes (${totalChanges})` : "Borough Stats";
+  btn.textContent = totalChanges > 0
+    ? `Stats and Grade Changes (${totalChanges})`
+    : "Stats and Grade Changes";
   btn.hidden = false;
 
   subtitle.textContent = diff.previous ? `${diff.previous} → ${diff.date}` : diff.date;
